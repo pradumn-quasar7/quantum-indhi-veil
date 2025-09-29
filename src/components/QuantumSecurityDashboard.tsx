@@ -1,8 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Shield, 
   Cpu, 
@@ -15,7 +21,13 @@ import {
   CreditCard,
   Lock,
   Eye,
-  RefreshCw
+  RefreshCw,
+  Play,
+  Pause,
+  Settings,
+  Database,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import quantumHero from '@/assets/quantum-hero.jpg';
 import securityDashboard from '@/assets/security-dashboard.jpg';
@@ -38,7 +50,31 @@ interface IoTDevice {
   quantumProtected: boolean;
 }
 
+interface Transaction {
+  id: string;
+  type: 'UPI' | 'Bitcoin' | 'Blockchain';
+  amount: number;
+  timestamp: string;
+  status: 'completed' | 'pending' | 'failed';
+  quantumEncrypted: boolean;
+}
+
+interface ThreatAlert {
+  id: string;
+  type: 'warning' | 'critical' | 'info';
+  message: string;
+  timestamp: string;
+  resolved: boolean;
+}
+
 const QuantumSecurityDashboard: React.FC = () => {
+  const { toast } = useToast();
+  const [isSystemActive, setIsSystemActive] = useState(true);
+  const [quantumShieldEnabled, setQuantumShieldEnabled] = useState(true);
+  const [aiScanningEnabled, setAiScanningEnabled] = useState(true);
+  const [selectedRegion, setSelectedRegion] = useState('india');
+  const [emergencyMode, setEmergencyMode] = useState(false);
+  
   const [securityMetrics, setSecurityMetrics] = useState<SecurityMetric[]>([
     { id: '1', name: 'Quantum Encryption', value: 98, status: 'safe', trend: 'stable' },
     { id: '2', name: 'IoT Device Security', value: 85, status: 'warning', trend: 'up' },
@@ -56,29 +92,167 @@ const QuantumSecurityDashboard: React.FC = () => {
     { id: '5', name: 'Water Treatment Plant', type: 'Utilities', status: 'online', lastSeen: '1 min ago', quantumProtected: true }
   ]);
 
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([
+    { id: '1', type: 'UPI', amount: 2500, timestamp: '2 mins ago', status: 'completed', quantumEncrypted: true },
+    { id: '2', type: 'Bitcoin', amount: 0.0045, timestamp: '5 mins ago', status: 'completed', quantumEncrypted: true },
+    { id: '3', type: 'Blockchain', amount: 15000, timestamp: '8 mins ago', status: 'pending', quantumEncrypted: true },
+    { id: '4', type: 'UPI', amount: 750, timestamp: '12 mins ago', status: 'failed', quantumEncrypted: false }
+  ]);
+
+  const [threatAlerts, setThreatAlerts] = useState<ThreatAlert[]>([
+    { id: '1', type: 'warning', message: 'Hospital IoT Sensors require quantum protection update', timestamp: '3 mins ago', resolved: false },
+    { id: '2', type: 'info', message: 'Quantum key rotation completed successfully', timestamp: '15 mins ago', resolved: true },
+    { id: '3', type: 'critical', message: 'Attempted breach detected on Grid Controller - Blocked', timestamp: '1 hour ago', resolved: true }
+  ]);
+
   const [threatLevel, setThreatLevel] = useState(2);
   const [bitcoinPrice, setBitcoinPrice] = useState(67234.89);
   const [upiTransactions, setUpiTransactions] = useState(1247);
   const [quantumReadiness, setQuantumReadiness] = useState(94);
 
-  // Simulate real-time updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Update metrics with slight variations
-      setSecurityMetrics(prev => prev.map(metric => ({
-        ...metric,
-        value: Math.max(0, Math.min(100, metric.value + (Math.random() - 0.5) * 2))
-      })));
+  // Functional handlers
+  const handleQuantumShieldToggle = useCallback(() => {
+    setQuantumShieldEnabled(prev => {
+      const newState = !prev;
+      toast({
+        title: newState ? "Quantum Shield Activated" : "Quantum Shield Deactivated",
+        description: newState ? "All systems now protected with quantum encryption" : "Warning: Systems vulnerable to quantum attacks",
+        variant: newState ? "default" : "destructive"
+      });
+      return newState;
+    });
+  }, [toast]);
 
-      // Update Bitcoin price
-      setBitcoinPrice(prev => prev + (Math.random() - 0.5) * 100);
+  const handleEmergencyLock = useCallback(() => {
+    setEmergencyMode(prev => {
+      const newState = !prev;
+      toast({
+        title: newState ? "Emergency Mode Activated" : "Emergency Mode Deactivated",
+        description: newState ? "All non-critical systems locked down" : "Systems restored to normal operation",
+        variant: newState ? "destructive" : "default"
+      });
       
-      // Update UPI transactions
-      setUpiTransactions(prev => prev + Math.floor(Math.random() * 5));
+      if (newState) {
+        setIoTDevices(prev => prev.map(device => ({
+          ...device,
+          status: device.type === 'Infrastructure' ? 'online' : 'offline'
+        })));
+      }
+      return newState;
+    });
+  }, [toast]);
+
+  const handleQuantumKeyRefresh = useCallback(() => {
+    toast({
+      title: "Quantum Key Refresh Initiated",
+      description: "Generating new quantum-resistant encryption keys..."
+    });
+    
+    setTimeout(() => {
+      setQuantumReadiness(prev => Math.min(100, prev + Math.random() * 5));
+      toast({
+        title: "Quantum Keys Updated",
+        description: "All systems now using fresh quantum-resistant keys"
+      });
+    }, 3000);
+  }, [toast]);
+
+  const handleDeepScan = useCallback(() => {
+    toast({
+      title: "Deep Security Scan Started",
+      description: "AI-powered vulnerability assessment in progress..."
+    });
+    
+    setTimeout(() => {
+      const vulnerabilityFound = Math.random() > 0.7;
+      if (vulnerabilityFound) {
+        setThreatAlerts(prev => [...prev, {
+          id: Date.now().toString(),
+          type: 'warning',
+          message: 'New vulnerability detected and automatically patched',
+          timestamp: 'Just now',
+          resolved: true
+        }]);
+      }
+      toast({
+        title: "Deep Scan Complete",
+        description: vulnerabilityFound ? "1 vulnerability found and resolved" : "No vulnerabilities detected"
+      });
+    }, 5000);
+  }, [toast]);
+
+  const handleDeviceToggle = useCallback((deviceId: string) => {
+    setIoTDevices(prev => prev.map(device => 
+      device.id === deviceId 
+        ? { 
+            ...device, 
+            status: device.status === 'online' ? 'offline' : 'online',
+            lastSeen: device.status === 'online' ? 'Offline' : 'Just now'
+          }
+        : device
+    ));
+  }, []);
+
+  const handleQuantumProtection = useCallback((deviceId: string) => {
+    setIoTDevices(prev => prev.map(device => 
+      device.id === deviceId 
+        ? { ...device, quantumProtected: !device.quantumProtected }
+        : device
+    ));
+    
+    toast({
+      title: "Quantum Protection Updated",
+      description: "Device security level modified"
+    });
+  }, [toast]);
+
+  const resolveAlert = useCallback((alertId: string) => {
+    setThreatAlerts(prev => prev.map(alert => 
+      alert.id === alertId ? { ...alert, resolved: true } : alert
+    ));
+    toast({
+      title: "Alert Resolved",
+      description: "Security issue has been addressed"
+    });
+  }, [toast]);
+
+  // Real-time updates simulation
+  useEffect(() => {
+    if (!isSystemActive) return;
+    
+    const interval = setInterval(() => {
+      setSecurityMetrics(prev => prev.map(metric => {
+        let change = (Math.random() - 0.5) * (emergencyMode ? 0.5 : 2);
+        if (!quantumShieldEnabled && (metric.name.includes('Quantum') || metric.name.includes('Crypto'))) {
+          change -= 5;
+        }
+        return {
+          ...metric,
+          value: Math.max(0, Math.min(100, metric.value + change)),
+          status: metric.value > 90 ? 'safe' : metric.value > 70 ? 'warning' : 'critical'
+        };
+      }));
+
+      setBitcoinPrice(prev => prev + (Math.random() - 0.5) * 200);
+      setUpiTransactions(prev => prev + Math.floor(Math.random() * 8));
+      
+      if (Math.random() > 0.8) {
+        const types: ('UPI' | 'Bitcoin' | 'Blockchain')[] = ['UPI', 'Bitcoin', 'Blockchain'];
+        const newTransaction: Transaction = {
+          id: Date.now().toString(),
+          type: types[Math.floor(Math.random() * types.length)],
+          amount: Math.floor(Math.random() * 10000),
+          timestamp: 'Just now',
+          status: 'completed',
+          quantumEncrypted: quantumShieldEnabled
+        };
+        
+        setRecentTransactions(prev => [newTransaction, ...prev.slice(0, 9)]);
+      }
     }, 3000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isSystemActive, quantumShieldEnabled, emergencyMode]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -118,13 +292,21 @@ const QuantumSecurityDashboard: React.FC = () => {
               Next-generation quantum-resistant security for critical infrastructure with integrated UPI & blockchain protection
             </p>
             <div className="flex gap-4 justify-center">
-              <Button variant="default" className="quantum-glow">
+              <Button 
+                variant="default" 
+                className="quantum-glow" 
+                onClick={handleQuantumShieldToggle}
+              >
                 <Shield className="mr-2 h-4 w-4" />
-                Activate Quantum Shield
+                {quantumShieldEnabled ? 'Quantum Shield Active' : 'Activate Quantum Shield'}
               </Button>
-              <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
-                <Eye className="mr-2 h-4 w-4" />
-                Monitor Network
+              <Button 
+                variant="outline" 
+                className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                onClick={() => setIsSystemActive(!isSystemActive)}
+              >
+                {isSystemActive ? <Pause className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
+                {isSystemActive ? 'Pause Monitoring' : 'Resume Monitoring'}
               </Button>
             </div>
           </div>
@@ -132,6 +314,95 @@ const QuantumSecurityDashboard: React.FC = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* System Controls */}
+        <Card className="border-primary/20 bg-gradient-quantum/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-primary" />
+              System Control Panel
+            </CardTitle>
+            <CardDescription>
+              Configure quantum security settings and monitoring parameters
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="quantum-shield">Quantum Shield</Label>
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="quantum-shield"
+                    checked={quantumShieldEnabled}
+                    onCheckedChange={handleQuantumShieldToggle}
+                  />
+                  <Badge className={quantumShieldEnabled ? 'bg-success' : 'bg-destructive'}>
+                    {quantumShieldEnabled ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ai-scanning">AI Threat Scanning</Label>
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="ai-scanning"
+                    checked={aiScanningEnabled}
+                    onCheckedChange={setAiScanningEnabled}
+                  />
+                  <Badge className={aiScanningEnabled ? 'bg-accent' : 'bg-muted'}>
+                    {aiScanningEnabled ? 'Scanning' : 'Disabled'}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="region-select">Security Region</Label>
+                <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="india">India</SelectItem>
+                    <SelectItem value="global">Global</SelectItem>
+                    <SelectItem value="asia-pacific">Asia Pacific</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Emergency Mode</Label>
+                <Button 
+                  variant={emergencyMode ? "destructive" : "outline"}
+                  className="w-full"
+                  onClick={handleEmergencyLock}
+                >
+                  {emergencyMode ? 'Exit Emergency' : 'Emergency Lock'}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Threat Alerts */}
+        {threatAlerts.some(alert => !alert.resolved) && (
+          <div className="space-y-2">
+            {threatAlerts.filter(alert => !alert.resolved).map(alert => (
+              <Alert key={alert.id} className={
+                alert.type === 'critical' ? 'border-destructive' : 
+                alert.type === 'warning' ? 'border-warning' : 'border-accent'
+              }>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="flex justify-between items-center">
+                  <span>{alert.message}</span>
+                  <Button size="sm" variant="outline" onClick={() => resolveAlert(alert.id)}>
+                    Resolve
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            ))}
+          </div>
+        )}
+
         {/* Real-time Status Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="border-primary/20 bg-card/50 backdrop-blur-sm">
@@ -231,22 +502,39 @@ const QuantumSecurityDashboard: React.FC = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span>Active Scans</span>
-                  <Badge className="bg-accent text-accent-foreground animate-pulse">
-                    Running
+                  <Badge className={`${aiScanningEnabled ? 'bg-accent text-accent-foreground animate-pulse' : 'bg-muted'}`}>
+                    {aiScanningEnabled ? 'Running' : 'Stopped'}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Vulnerabilities Found</span>
-                  <span className="font-bold text-warning">3 Low Risk</span>
+                  <span className="font-bold text-warning">
+                    {threatAlerts.filter(alert => !alert.resolved).length} Active
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Quantum Algorithms</span>
-                  <CheckCircle className="h-4 w-4 text-success" />
+                  {quantumShieldEnabled ? (
+                    <CheckCircle className="h-4 w-4 text-success" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-warning" />
+                  )}
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Last Scan</span>
-                  <span className="text-sm text-muted-foreground">2 minutes ago</span>
+                  <span className="text-sm text-muted-foreground">
+                    {aiScanningEnabled ? '2 minutes ago' : 'Disabled'}
+                  </span>
                 </div>
+                <Button 
+                  variant="outline" 
+                  className="w-full mt-4"
+                  onClick={handleDeepScan}
+                  disabled={!aiScanningEnabled}
+                >
+                  <Activity className="mr-2 h-4 w-4" />
+                  Run Deep Scan
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -270,18 +558,40 @@ const QuantumSecurityDashboard: React.FC = () => {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-semibold text-sm">{device.name}</h4>
-                      <Badge className={getDeviceStatusColor(device.status)}>
-                        {device.status}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getDeviceStatusColor(device.status)}>
+                          {device.status}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeviceToggle(device.id)}
+                          disabled={emergencyMode && device.type !== 'Infrastructure'}
+                        >
+                          {device.status === 'online' ? <WifiOff className="h-3 w-3" /> : <Wifi className="h-3 w-3" />}
+                        </Button>
+                      </div>
                     </div>
                     <p className="text-xs text-muted-foreground mb-2">{device.type}</p>
-                    <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center justify-between text-xs mb-2">
                       <span>Last seen: {device.lastSeen}</span>
-                      {device.quantumProtected ? (
-                        <Lock className="h-3 w-3 text-success" />
-                      ) : (
-                        <AlertTriangle className="h-3 w-3 text-warning" />
-                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleQuantumProtection(device.id)}
+                        className="p-0 h-auto"
+                      >
+                        {device.quantumProtected ? (
+                          <Lock className="h-3 w-3 text-success" />
+                        ) : (
+                          <AlertTriangle className="h-3 w-3 text-warning" />
+                        )}
+                      </Button>
+                    </div>
+                    <div className="text-xs">
+                      <span className={device.quantumProtected ? 'text-success' : 'text-warning'}>
+                        {device.quantumProtected ? 'Quantum Protected' : 'Needs Protection'}
+                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -289,6 +599,95 @@ const QuantumSecurityDashboard: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Transactions & Alerts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Card className="border-secondary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5 text-secondary" />
+                Recent Transactions
+              </CardTitle>
+              <CardDescription>
+                Real-time quantum-encrypted transaction monitoring
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {recentTransactions.slice(0, 5).map((transaction) => (
+                  <div key={transaction.id} className="flex items-center justify-between p-3 border border-border/50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      {transaction.type === 'UPI' && <CreditCard className="h-4 w-4 text-secondary" />}
+                      {transaction.type === 'Bitcoin' && <Bitcoin className="h-4 w-4 text-accent" />}
+                      {transaction.type === 'Blockchain' && <Network className="h-4 w-4 text-primary" />}
+                      <div>
+                        <p className="text-sm font-medium">{transaction.type}</p>
+                        <p className="text-xs text-muted-foreground">{transaction.timestamp}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold">
+                        {transaction.type === 'Bitcoin' ? '₿' : '₹'}{transaction.amount.toLocaleString()}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Badge className={
+                          transaction.status === 'completed' ? 'bg-success' :
+                          transaction.status === 'pending' ? 'bg-warning' : 'bg-destructive'
+                        }>
+                          {transaction.status}
+                        </Badge>
+                        {transaction.quantumEncrypted && <Lock className="h-3 w-3 text-success" />}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-warning/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-warning" />
+                Security Alerts
+              </CardTitle>
+              <CardDescription>
+                Recent threat detection and security events
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {threatAlerts.slice(0, 5).map((alert) => (
+                  <div key={alert.id} className={`p-3 border rounded-lg ${
+                    alert.type === 'critical' ? 'border-destructive/50 bg-destructive/5' :
+                    alert.type === 'warning' ? 'border-warning/50 bg-warning/5' :
+                    'border-accent/50 bg-accent/5'
+                  }`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm">{alert.message}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{alert.timestamp}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {alert.resolved ? (
+                          <CheckCircle className="h-4 w-4 text-success" />
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => resolveAlert(alert.id)}
+                          >
+                            Resolve
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Blockchain & Payment Integration */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -360,7 +759,7 @@ const QuantumSecurityDashboard: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-primary" />
-              Quantum Security Control Panel
+              Quantum Security Actions
             </CardTitle>
             <CardDescription>
               Advanced controls for quantum-resistant security framework
@@ -368,21 +767,42 @@ const QuantumSecurityDashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Button variant="outline" className="h-16 flex flex-col gap-2 border-primary/50 hover:bg-primary hover:text-primary-foreground">
+              <Button 
+                variant="outline" 
+                className="h-16 flex flex-col gap-2 border-primary/50 hover:bg-primary hover:text-primary-foreground"
+                onClick={handleQuantumKeyRefresh}
+                disabled={!quantumShieldEnabled}
+              >
                 <RefreshCw className="h-4 w-4" />
                 <span className="text-xs">Refresh Quantum Keys</span>
               </Button>
-              <Button variant="outline" className="h-16 flex flex-col gap-2 border-accent/50 hover:bg-accent hover:text-accent-foreground">
+              <Button 
+                variant="outline" 
+                className="h-16 flex flex-col gap-2 border-accent/50 hover:bg-accent hover:text-accent-foreground"
+                onClick={handleDeepScan}
+                disabled={!aiScanningEnabled}
+              >
                 <Activity className="h-4 w-4" />
                 <span className="text-xs">Run Deep Scan</span>
               </Button>
-              <Button variant="outline" className="h-16 flex flex-col gap-2 border-secondary/50 hover:bg-secondary hover:text-secondary-foreground">
+              <Button 
+                variant="outline" 
+                className="h-16 flex flex-col gap-2 border-secondary/50 hover:bg-secondary hover:text-secondary-foreground"
+                onClick={() => {
+                  setIoTDevices(prev => prev.map(device => ({ ...device, lastSeen: 'Just updated' })));
+                  toast({ title: "Network Topology Updated", description: "Device mapping refreshed" });
+                }}
+              >
                 <Network className="h-4 w-4" />
                 <span className="text-xs">Update Topology</span>
               </Button>
-              <Button variant="outline" className="h-16 flex flex-col gap-2 border-warning/50 hover:bg-warning hover:text-warning-foreground">
+              <Button 
+                variant="outline" 
+                className="h-16 flex flex-col gap-2 border-warning/50 hover:bg-warning hover:text-warning-foreground"
+                onClick={handleEmergencyLock}
+              >
                 <Lock className="h-4 w-4" />
-                <span className="text-xs">Emergency Lock</span>
+                <span className="text-xs">{emergencyMode ? 'Exit Emergency' : 'Emergency Lock'}</span>
               </Button>
             </div>
           </CardContent>
